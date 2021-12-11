@@ -4,6 +4,13 @@ a websocket server module.
 
 require redis to scale to multi nodes.
 
+client/server message format
+```go
+type Message struct {
+	Event   string          `json:"event"`
+	Payload json.RawMessage `json:"payload"`
+}
+```
 use module like the code below.
 
 ```go
@@ -42,16 +49,6 @@ func main() {
 }
 
 ```
-
-message format
-
-```go
-type Message struct {
-	Event   string          `json:"event"`
-	Payload json.RawMessage `json:"payload"`
-}
-```
-
 send/received message
 
 ```shell
