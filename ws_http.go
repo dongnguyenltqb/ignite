@@ -1,7 +1,6 @@
 package ignite
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -13,7 +12,7 @@ func NewServer(addr string, redis_addr string, redis_password string, redis_db i
 	go func() {
 		err := http.ListenAndServe(addr, nil)
 		if err != nil {
-			fmt.Print(err)
+			panic(err)
 		}
 	}()
 	getLogger().Info("Hub is running on ", addr)
