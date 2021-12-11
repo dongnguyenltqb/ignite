@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/go-redis/redis/v8"
@@ -107,9 +106,8 @@ func getHub() *Hub {
 
 		redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel)
 		redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel)
-
 		hub = &Hub{
-			nodeId:                 os.Getenv("node_id"),
+			nodeId:                 uuid.New().String(),
 			directMsg:              make(chan wsDirectMessage),
 			broadcast:              make(chan []byte),
 			room:                   make(chan wsMessageForRoom),
@@ -128,7 +126,10 @@ func getHub() *Hub {
 }
 
 func (h *Hub) SendMsgToRoom(roomId string, message Message) {
-	b, _ := json.Marshal(message)
+	b, err := json.Marshal(message)
+	if err != nil {
+		h.logger.Error(err)
+	}
 	h.room <- wsMessageForRoom{
 		NodeId:  h.nodeId,
 		RoomId:  roomId,
