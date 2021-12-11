@@ -10,8 +10,9 @@ use module like the code below.
 	import (
 		"encoding/json"
 		"fmt"
-		"ignite"
 		"time"
+
+		"github.com/dongnguyenltqb/ignite"
 	)
 
 	func main() {
