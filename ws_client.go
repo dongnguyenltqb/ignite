@@ -195,10 +195,21 @@ func (c *Client) sendMsg(message []byte) {
 	}
 }
 
+// Send direct message to client
+func (c *Client) SendMessage(message Message) {
+	b, _ := json.Marshal(message)
+	c.hub.directMsg <- wsDirectMessage{
+		c:       c,
+		message: b,
+	}
+}
+
+// Send message to specific room
 func (c *Client) SendMsgToRoom(roomId string, message Message) {
 	c.hub.SendMsgToRoom(roomId, message)
 }
 
+// Send message to all active connection
 func (c *Client) BroadcastMsg(msg []byte) {
 	c.hub.BroadcastMsg(msg)
 }

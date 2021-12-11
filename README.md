@@ -5,12 +5,14 @@ a websocket server module.
 require redis to scale to multi nodes.
 
 client/server message format
+
 ```go
 type Message struct {
 	Event   string          `json:"event"`
 	Payload json.RawMessage `json:"payload"`
 }
 ```
+
 use module like the code below.
 
 ```go
@@ -20,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dongnguyenltqb/ignite"
+	"ignite"
 )
 
 func main() {
@@ -28,10 +30,15 @@ func main() {
 	hub := ignite.NewServer("localhost:8787", "localhost:6379", "", 10)
 	hub.OnNewClient = func(client *ignite.Client) {
 		client.SendIdentityMsg()
+		client.Join("room-1")
 		client.On("buy", "1", func(payload json.RawMessage) {
 			fmt.Println("BUY=>", string(payload))
-			client.SendMsgToRoom(client.Id, ignite.Message{
-				Event:   "bought",
+			client.SendMessage(ignite.Message{
+				Event:   "test",
+				Payload: payload,
+			})
+			client.SendMsgToRoom("room-1", ignite.Message{
+				Event:   "test_room_1",
 				Payload: payload,
 			})
 		})
@@ -47,8 +54,8 @@ func main() {
 	}
 	<-never_die
 }
-
 ```
+
 send/received message
 
 ```shell
