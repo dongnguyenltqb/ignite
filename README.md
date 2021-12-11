@@ -2,6 +2,16 @@
 
 websocket server module
 
+pub/sub redis config env, use a single redis instance.
+
+```
+ignite_redis_db=
+ignite_redis_addr=
+ignite_redis_password
+```
+
+use module like the code below.
+
 ```go
 package main
 
