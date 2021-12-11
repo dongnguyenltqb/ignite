@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"sync"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -97,31 +96,24 @@ type Hub struct {
 	OnNewClient func(*Client)
 }
 
-var hub *Hub
-var onceInitHub sync.Once
-
-// getHub return singleton hub
-func getHub() *Hub {
-	onceInitHub.Do(func() {
-
-		redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel)
-		redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel)
-		hub = &Hub{
-			nodeId:                 uuid.New().String(),
-			directMsg:              make(chan wsDirectMessage),
-			broadcast:              make(chan []byte),
-			room:                   make(chan wsMessageForRoom),
-			register:               make(chan *Client),
-			unregister:             make(chan *Client),
-			clients:                make(map[*Client]bool),
-			pubSubRoomChannel:      pubSubRoomChannel,
-			pubSubBroadcastChannel: pubSubBroadcastChannel,
-			subscribeRoomChan:      redisSubscribeRoom.Channel(),
-			subscribeBroadcastChan: redisSubscribeBroadcast.Channel(),
-			logger:                 getLogger(),
-		}
-		go hub.run()
-	})
+func newHub() *Hub {
+	redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel)
+	redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel)
+	hub := &Hub{
+		nodeId:                 uuid.New().String(),
+		directMsg:              make(chan wsDirectMessage),
+		broadcast:              make(chan []byte),
+		room:                   make(chan wsMessageForRoom),
+		register:               make(chan *Client),
+		unregister:             make(chan *Client),
+		clients:                make(map[*Client]bool),
+		pubSubRoomChannel:      pubSubRoomChannel,
+		pubSubBroadcastChannel: pubSubBroadcastChannel,
+		subscribeRoomChan:      redisSubscribeRoom.Channel(),
+		subscribeBroadcastChan: redisSubscribeBroadcast.Channel(),
+		logger:                 getLogger(),
+	}
+	go hub.run()
 	return hub
 }
 
@@ -138,7 +130,7 @@ func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 }
 
 func (h *Hub) BroadcastMsg(msg []byte) {
-	hub.broadcast <- msg
+	h.broadcast <- msg
 }
 
 func (h *Hub) doSendMsg(message wsDirectMessage) {
