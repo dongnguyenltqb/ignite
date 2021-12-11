@@ -5,9 +5,9 @@ websocket server module
 pub/sub redis config env, use a single redis instance.
 
 ```
-ignite_redis_db=
-ignite_redis_addr=
-ignite_redis_password
+ignite_redis_db=10
+ignite_redis_addr=localhost:6379
+ignite_redis_password=
 ```
 
 use module like the code below.
