@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"ignite"
+	"github.com/dongnguyenltqb/ignite"
 )
 
 func main() {
