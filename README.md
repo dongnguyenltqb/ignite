@@ -24,6 +24,9 @@ func main() {
 		client.On("stop_buy", "3", func(raw json.RawMessage) {
 			client.Off("buy", "1")
 		})
+		client.OnClose = func(reason string) {
+			fmt.Println("Client ", client.Id, " closed because ", reason)
+		}
 	}
 	<-never_die
 }

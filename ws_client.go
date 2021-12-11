@@ -53,6 +53,9 @@ type Client struct {
 	// Logger
 	logger *logrus.Logger
 
+	// On close handler
+	OnClose func(string)
+
 	// Handle function
 	handleFuncs []clientHandleFunc
 }
@@ -116,6 +119,9 @@ func (c *Client) readPump() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				c.logger.Error(err)
+				if c.OnClose != nil {
+					c.OnClose(err.Error())
+				}
 			}
 			break
 		}
