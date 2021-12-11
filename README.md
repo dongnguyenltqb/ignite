@@ -1,7 +1,7 @@
 # ignite
 websocket server module
 
-
+```go
 package main
 
 import (
@@ -12,7 +12,7 @@ import (
 
 func main() {
 	never_die := make(chan bool)
-	hub := ignite.NewServer(8787)
+  hub := ignite.NewServer("localhost:8787")
 	hub.OnNewClient = func(client *ignite.Client) {
 		client.On("buy", "1", func(raw json.RawMessage) {
 			fmt.Println("BUY=>", string(raw))
@@ -26,3 +26,5 @@ func main() {
 	}
 	<-never_die
 }
+```
+
