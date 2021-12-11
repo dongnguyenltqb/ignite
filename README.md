@@ -21,38 +21,39 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/dongnguyenltqb/ignite"
 )
 
 func main() {
-	never_die := make(chan bool)
-	hub := ignite.NewServer("localhost:8787", "localhost:6379", "", 10)
+	forever := make(chan bool)
+
+	hub := ignite.NewServer(os.Getenv("addr"), "localhost:6379", "", 10)
 	hub.OnNewClient = func(client *ignite.Client) {
 		client.SendIdentityMsg()
-		client.Join("room-1")
+		client.Join("room-number-1")
 		client.On("buy", "1", func(payload json.RawMessage) {
-			fmt.Println("BUY=>", string(payload))
 			client.SendMessage(ignite.Message{
 				Event:   "test",
 				Payload: payload,
 			})
-			client.SendMsgToRoom("room-1", ignite.Message{
+			client.SendMsgToRoom("room-number-2", ignite.Message{
 				Event:   "test_room_1",
 				Payload: payload,
 			})
 		})
-		client.On("sell", "2", func(payload json.RawMessage) {
-			fmt.Println("SELL =>", string(payload))
-		})
 		client.On("stop_buy", "3", func(payload json.RawMessage) {
 			client.Off("buy", "1")
+			client.Leave("room-number-1")
+
 		})
 		client.OnClose(func(reason string) {
 			fmt.Println("Client ", client.Id, " closed: ", reason)
 		})
 	}
-	<-never_die
+
+	<-forever
 }
 ```
 
