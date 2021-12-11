@@ -45,8 +45,8 @@ message format
 
 ```go
 type Message struct {
-	Type string          `json:"type"`
-	Raw  json.RawMessage `json:"raw"`
+	Type string          `json:"type"` // type is event name.
+	Raw  json.RawMessage `json:"raw"` // payload for event.
 }
 ```
 
