@@ -1,7 +1,9 @@
 # ignite
 
-websocket server module
-require redis to scale to multi node
+a websocket server module.
+
+require redis to scale to multi nodes.
+
 use module like the code below.
 
 ```go
@@ -38,3 +40,26 @@ use module like the code below.
 		<-never_die
 	}
 ```
+
+message format
+
+```go
+type Message struct {
+	Type string          `json:"type"`
+	Raw  json.RawMessage `json:"raw"`
+}
+```
+
+send/received message
+
+```shell
+➜  ignite git:(master) ✗ wscat -c "ws://localhost:8787/ws"
+Connected (press CTRL+C to quit)
+< {"type":"identity","raw":{"clientId":"f7d85acf-7ccc-4860-ad4a-c60658c26f23"}}
+< Hello
+> {"type":"buy","raw":{"code":"PTB"}}
+> 
+
+
+```
+
