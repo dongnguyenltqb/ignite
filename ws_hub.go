@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	pubSubRoomChannel      = "chat_app_room_chan"
-	pubSubBroadcastChannel = "chat_app_broadcast_chan"
+	pubSubRoomChannel      = "ignite_room_chan"
+	pubSubBroadcastChannel = "ignite_broadcast_chan"
 )
 
 var upgrader = websocket.Upgrader{
