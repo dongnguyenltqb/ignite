@@ -1,8 +1,6 @@
 package ignite
 
 import (
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -11,16 +9,20 @@ import (
 
 var onceSetupRedis sync.Once
 var rdb *redis.Client
+var redisConfig *redis.Options
 
 func getRedis() *redis.Client {
 	onceSetupRedis.Do(func() {
-		db, _ := strconv.Atoi(os.Getenv("ignite_redis_db"))
-		rdb = redis.NewClient(&redis.Options{
-			Addr:        os.Getenv("ignite_redis_addr"),
-			Password:    os.Getenv("ignite_redis_password"),
-			DB:          db,
-			DialTimeout: 3 * time.Second,
-		})
+		rdb = redis.NewClient(redisConfig)
 	})
 	return rdb
+}
+
+func setRedisConfig(addr string, password string, db int) {
+	redisConfig = &redis.Options{
+		Addr:        addr,
+		Password:    password,
+		DB:          db,
+		DialTimeout: 3 * time.Second,
+	}
 }

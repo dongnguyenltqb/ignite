@@ -1,4 +1,4 @@
-module ignite
+module github.com/dongnguyenltqb/gnite
 
 go 1.17
 
