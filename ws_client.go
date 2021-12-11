@@ -195,7 +195,7 @@ func (c *Client) sendMsg(message []byte) {
 	}
 }
 
-func (c *Client) SendMsgToRoom(roomId string, message []byte) {
+func (c *Client) SendMsgToRoom(roomId string, message Message) {
 	c.hub.SendMsgToRoom(roomId, message)
 }
 
@@ -208,9 +208,9 @@ func (c *Client) SendIdentityMsg() {
 		ClientId: c.Id,
 	}
 	b, _ := json.Marshal(clientId)
-	msg := wsMessage{
-		Type: msgIdentity,
-		Raw:  b,
+	msg := Message{
+		Event:   msgIdentity,
+		Payload: b,
 	}
 	b, _ = json.Marshal(msg)
 	go c.sendMsg(b)
@@ -239,15 +239,15 @@ func (c *Client) OnClose(f func(string)) {
 
 // process message from readPump
 func (c *Client) processMsg(message []byte) {
-	msg := wsMessage{}
+	msg := Message{}
 	if err := json.Unmarshal(message, &msg); err != nil {
 		c.logger.Error(err)
 		return
 	}
 	// Handle chat message, broadcast room
 	for _, handler := range c.handleFuncs {
-		if handler.event == msg.Type {
-			handler.f(msg.Raw)
+		if handler.event == msg.Event {
+			handler.f(msg.Payload)
 		}
 	}
 }

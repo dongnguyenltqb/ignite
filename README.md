@@ -7,46 +7,48 @@ require redis to scale to multi nodes.
 use module like the code below.
 
 ```go
-	package main
+package main
 
-	import (
-		"encoding/json"
-		"fmt"
-		"time"
+import (
+	"encoding/json"
+	"fmt"
 
-		"github.com/dongnguyenltqb/ignite"
-	)
+	"github.com/dongnguyenltqb/ignite"
+)
 
-	func main() {
-		never_die := make(chan bool)
-		hub := ignite.NewServer("localhost:8787", "localhost:6379", "", 10)
-		hub.OnNewClient = func(client *ignite.Client) {
-			client.SendIdentityMsg()
-			client.On("buy", "1", func(raw json.RawMessage) {
-				fmt.Println("BUY=>", string(raw))
+func main() {
+	never_die := make(chan bool)
+	hub := ignite.NewServer("localhost:8787", "localhost:6379", "", 10)
+	hub.OnNewClient = func(client *ignite.Client) {
+		client.SendIdentityMsg()
+		client.On("buy", "1", func(payload json.RawMessage) {
+			fmt.Println("BUY=>", string(payload))
+			client.SendMsgToRoom(client.Id, ignite.Message{
+				Event:   "bought",
+				Payload: payload,
 			})
-			client.On("sell", "2", func(raw json.RawMessage) {
-				fmt.Println("SELL =>", string(raw))
-			})
-			client.On("stop_buy", "3", func(raw json.RawMessage) {
-				client.Off("buy", "1")
-			})
-			client.OnClose(func(reason string) {
-				fmt.Println("Client ", client.Id, " closed: ", reason)
-			})
-			<-time.After(time.Second)
-			client.SendMsgToRoom(client.Id, []byte("Hello"))
-		}
-		<-never_die
+		})
+		client.On("sell", "2", func(payload json.RawMessage) {
+			fmt.Println("SELL =>", string(payload))
+		})
+		client.On("stop_buy", "3", func(payload json.RawMessage) {
+			client.Off("buy", "1")
+		})
+		client.OnClose(func(reason string) {
+			fmt.Println("Client ", client.Id, " closed: ", reason)
+		})
 	}
+	<-never_die
+}
+
 ```
 
 message format
 
 ```go
 type Message struct {
-	Type string          `json:"type"` // type is event name.
-	Raw  json.RawMessage `json:"raw"` // payload for event.
+	Event   string          `json:"event"`
+	Payload json.RawMessage `json:"payload"`
 }
 ```
 
@@ -55,11 +57,8 @@ send/received message
 ```shell
 ➜  ignite git:(master) ✗ wscat -c "ws://localhost:8787/ws"
 Connected (press CTRL+C to quit)
-< {"type":"identity","raw":{"clientId":"f7d85acf-7ccc-4860-ad4a-c60658c26f23"}}
-< Hello
-> {"type":"buy","raw":{"code":"PTB"}}
-> 
-
-
+< {"event":"identity","payload":{"clientId":"48d44877-f04b-4e63-ad4b-ebf17899a4de"}}
+> {"event":"buy","payload":"PTB"}
+< {"event":"bought","payload":"PTB"}
+>
 ```
-

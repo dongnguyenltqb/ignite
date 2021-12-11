@@ -127,11 +127,12 @@ func getHub() *Hub {
 	return hub
 }
 
-func (h *Hub) SendMsgToRoom(roomId string, message []byte) {
+func (h *Hub) SendMsgToRoom(roomId string, message Message) {
+	b, _ := json.Marshal(message)
 	h.room <- wsMessageForRoom{
 		NodeId:  h.nodeId,
 		RoomId:  roomId,
-		Message: message,
+		Message: b,
 	}
 }
 

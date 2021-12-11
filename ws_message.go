@@ -9,9 +9,9 @@ const (
 	msgIdentity  = "identity"
 )
 
-type wsMessage struct {
-	Type string          `json:"type"`
-	Raw  json.RawMessage `json:"raw"`
+type Message struct {
+	Event   string          `json:"event"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 type wsDirectMessage struct {
