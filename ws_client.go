@@ -54,7 +54,7 @@ type Client struct {
 	logger *logrus.Logger
 
 	// On close handler
-	OnClose func(string)
+	onCloseHandelFuncs []func(string)
 
 	// Handle function
 	handleFuncs []clientHandleFunc
@@ -119,8 +119,10 @@ func (c *Client) readPump() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				c.logger.Error(err)
-				if c.OnClose != nil {
-					c.OnClose(err.Error())
+				if len(c.onCloseHandelFuncs) > 0 {
+					for _, handler := range c.onCloseHandelFuncs {
+						handler(err.Error())
+					}
 				}
 			}
 			break
@@ -201,7 +203,7 @@ func (c *Client) BroadcastMsg(msg []byte) {
 	c.hub.BroadcastMsg(msg)
 }
 
-func (c *Client) sendIdentityMsg() {
+func (c *Client) SendIdentityMsg() {
 	clientId := wsIdentityMessage{
 		ClientId: c.Id,
 	}
@@ -230,6 +232,9 @@ func (c *Client) Off(event string, funcId string) {
 		}
 	}
 	c.handleFuncs = newHandleFuncs
+}
+func (c *Client) OnClose(f func(string)) {
+	c.onCloseHandelFuncs = append(c.onCloseHandelFuncs, f)
 }
 
 // process message from readPump

@@ -15,6 +15,9 @@ func main() {
 	never_die := make(chan bool)
 	hub := ignite.NewServer("localhost:8787")
 	hub.OnNewClient = func(client *ignite.Client) {
+		// Send identity message
+		client.SendIdentityMsg()
+		// Register handle function with function id
 		client.On("buy", "1", func(raw json.RawMessage) {
 			fmt.Println("BUY=>", string(raw))
 		})
@@ -22,11 +25,14 @@ func main() {
 			fmt.Println("SELL =>", string(raw))
 		})
 		client.On("stop_buy", "3", func(raw json.RawMessage) {
+			// Unregister handle function with function id
 			client.Off("buy", "1")
 		})
-		client.OnClose = func(reason string) {
-			fmt.Println("Client ", client.Id, " closed because ", reason)
-		}
+		// Handle closed connection
+		client.OnClose(func(reason string) {
+			fmt.Println("Client ", client.Id, " closed:", reason)
+		})
+
 	}
 	<-never_die
 }

@@ -37,13 +37,14 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{
-		Id:     uuid.New().String(),
-		hub:    h,
-		conn:   conn,
-		send:   make(chan []byte, 256),
-		rchan:  make(chan wsRoomActionMessage, 100),
-		rooms:  make([]string, maxRoomSize),
-		logger: getLogger(),
+		Id:                 uuid.New().String(),
+		hub:                h,
+		conn:               conn,
+		send:               make(chan []byte, 256),
+		rchan:              make(chan wsRoomActionMessage, 100),
+		rooms:              make([]string, maxRoomSize),
+		onCloseHandelFuncs: []func(string){},
+		logger:             getLogger(),
 	}
 	client.rooms = []string{client.Id}
 	client.hub.register <- client
@@ -53,7 +54,6 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 	go client.roomPump()
 	go client.writePump()
 	go client.readPump()
-	client.sendIdentityMsg()
 	h.OnNewClient(client)
 
 }
