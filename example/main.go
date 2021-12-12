@@ -11,7 +11,7 @@ import (
 func main() {
 	forever := make(chan bool)
 
-	hub := ignite.NewServer(os.Getenv("addr"), "localhost:6379", "", 10)
+	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "localhost:6379", "", 10)
 	hub.OnNewClient = func(client *ignite.Client) {
 		client.SendIdentityMsg()
 		client.Join("room-number-1")
@@ -35,6 +35,5 @@ func main() {
 			fmt.Println("Client ", client.Id, " closed: ", reason)
 		})
 	}
-
 	<-forever
 }

@@ -23,38 +23,46 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dongnguyenltqb/ignite"
+	"ignite"
 )
 
 func main() {
 	forever := make(chan bool)
 
-	hub := ignite.NewServer(os.Getenv("addr"), "localhost:6379", "", 10)
+	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "localhost:6379", "", 10)
 	hub.OnNewClient = func(client *ignite.Client) {
+		// Send identity message, include client id
 		client.SendIdentityMsg()
+		// Join a room
 		client.Join("room-number-1")
+		newMemberPayload, _ := json.Marshal(client.Id)
+		// Broadcast
+		client.BroadcastMsg(ignite.Message{
+			Event:   "new_member",
+			Payload: newMemberPayload,
+		})
+		// Listen an event
 		client.On("buy", "1", func(payload json.RawMessage) {
+			// Send message
 			client.SendMessage(ignite.Message{
 				Event:   "test",
 				Payload: payload,
 			})
-			client.SendMsgToRoom("room-number-2", ignite.Message{
+			helloMsgPayload, _ := json.Marshal("Hello world")
+			// Send message to room
+			client.SendMsgToRoom("room-number-1", ignite.Message{
 				Event:   "test_room_1",
-				Payload: payload,
+				Payload: helloMsgPayload,
 			})
 		})
-		client.On("stop_buy", "3", func(payload json.RawMessage) {
-			client.Off("buy", "1")
-			client.Leave("room-number-1")
-
-		})
+		// Handle close connection event
 		client.OnClose(func(reason string) {
 			fmt.Println("Client ", client.Id, " closed: ", reason)
 		})
 	}
-
 	<-forever
 }
+
 ```
 
 send/received message
