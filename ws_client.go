@@ -47,7 +47,7 @@ type Client struct {
 	// Room channel event
 	rchan chan wsRoomActionMessage
 
-	// Room
+	// The list of room which client is joining
 	rooms []string
 
 	// Logger
@@ -188,7 +188,7 @@ func (c *Client) exist(roomId string) bool {
 	return false
 }
 
-func (c *Client) sendMsg(message []byte) {
+func (c *Client) sendRawMsg(message []byte) {
 	c.hub.directMsg <- wsDirectMessage{
 		c:       c,
 		message: message,
@@ -224,7 +224,7 @@ func (c *Client) SendIdentityMsg() {
 		Payload: b,
 	}
 	b, _ = json.Marshal(msg)
-	go c.sendMsg(b)
+	go c.sendRawMsg(b)
 }
 
 // register handle func
