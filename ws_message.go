@@ -9,6 +9,7 @@ const (
 	msgIdentity  = "identity"
 )
 
+// Client/Server message format
 type Message struct {
 	Event   string          `json:"event"`
 	Payload json.RawMessage `json:"payload"`

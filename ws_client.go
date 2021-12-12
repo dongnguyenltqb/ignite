@@ -25,6 +25,8 @@ const (
 	maxRoomSize = 100
 )
 
+// Client handle function for each event
+// Each function include function id, to easy to remove
 type clientHandleFunc struct {
 	event string
 	id    string
@@ -162,6 +164,8 @@ func (c *Client) writePump() {
 		}
 	}
 }
+
+// Join a room
 func (c *Client) Join(roomId string) {
 	rMsg := wsRoomActionMessage{
 		Join: true,
@@ -170,6 +174,7 @@ func (c *Client) Join(roomId string) {
 	c.rchan <- rMsg
 }
 
+// Leave a room
 func (c *Client) Leave(roomId string) {
 	rMsg := wsRoomActionMessage{
 		Leave: true,
@@ -178,6 +183,7 @@ func (c *Client) Leave(roomId string) {
 	c.rchan <- rMsg
 }
 
+// Check if client join this room or not
 func (c *Client) exist(roomId string) bool {
 	n := len(c.rooms)
 	for i := 0; i < n; i++ {
@@ -188,6 +194,7 @@ func (c *Client) exist(roomId string) bool {
 	return false
 }
 
+// Send a raw message to client
 func (c *Client) sendRawMsg(message []byte) {
 	c.hub.directMsg <- wsDirectMessage{
 		c:       c,
@@ -227,7 +234,7 @@ func (c *Client) SendIdentityMsg() {
 	go c.sendRawMsg(b)
 }
 
-// register handle func
+// Register handle func for an event
 func (c *Client) On(event string, funcId string, f func(json.RawMessage)) {
 	c.handleFuncs = append(c.handleFuncs, clientHandleFunc{
 		event: event,
@@ -235,6 +242,8 @@ func (c *Client) On(event string, funcId string, f func(json.RawMessage)) {
 		f:     f,
 	})
 }
+
+// Unregister handle func for an event
 func (c *Client) Off(event string, funcId string) {
 	newHandleFuncs := []clientHandleFunc{}
 	for _, handler := range c.handleFuncs {
@@ -244,6 +253,8 @@ func (c *Client) Off(event string, funcId string) {
 	}
 	c.handleFuncs = newHandleFuncs
 }
+
+// Callback function when a client closed connection
 func (c *Client) OnClose(f func(string)) {
 	c.onCloseHandelFuncs = append(c.onCloseHandelFuncs, f)
 }

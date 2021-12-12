@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+// Create a Hub listen on a specific address
+// Require redis instance config to scale to multi nodes
 func NewServer(addr string, redis_addr string, redis_password string, redis_db int) *Hub {
 	setRedisConfig(redis_addr, redis_password, redis_db)
 	hub := newHub()
