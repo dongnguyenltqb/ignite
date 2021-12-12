@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dongnguyenltqb/ignite"
+	"ignite"
 )
 
 func main() {
@@ -20,9 +20,10 @@ func main() {
 				Event:   "test",
 				Payload: payload,
 			})
-			client.SendMsgToRoom("room-number-2", ignite.Message{
+			b, _ := json.Marshal("Hello world")
+			client.SendMsgToRoom("room-number-1", ignite.Message{
 				Event:   "test_room_1",
-				Payload: payload,
+				Payload: b,
 			})
 		})
 		client.On("stop_buy", "3", func(payload json.RawMessage) {
