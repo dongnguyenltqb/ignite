@@ -15,21 +15,21 @@ func main() {
 	hub.OnNewClient = func(client *ignite.Client) {
 		client.SendIdentityMsg()
 		client.Join("room-number-1")
+		newMemberPayload, _ := json.Marshal(client.Id)
+		client.BroadcastMsg(ignite.Message{
+			Event:   "new_member",
+			Payload: newMemberPayload,
+		})
 		client.On("buy", "1", func(payload json.RawMessage) {
 			client.SendMessage(ignite.Message{
 				Event:   "test",
 				Payload: payload,
 			})
-			b, _ := json.Marshal("Hello world")
+			helloMsgPayload, _ := json.Marshal("Hello world")
 			client.SendMsgToRoom("room-number-1", ignite.Message{
 				Event:   "test_room_1",
-				Payload: b,
+				Payload: helloMsgPayload,
 			})
-		})
-		client.On("stop_buy", "3", func(payload json.RawMessage) {
-			client.Off("buy", "1")
-			client.Leave("room-number-1")
-
 		})
 		client.OnClose(func(reason string) {
 			fmt.Println("Client ", client.Id, " closed: ", reason)

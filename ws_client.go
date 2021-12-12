@@ -210,7 +210,7 @@ func (c *Client) SendMsgToRoom(roomId string, message Message) {
 }
 
 // Send message to all active connection
-func (c *Client) BroadcastMsg(msg []byte) {
+func (c *Client) BroadcastMsg(msg Message) {
 	c.hub.BroadcastMsg(msg)
 }
 

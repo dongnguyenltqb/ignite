@@ -129,8 +129,13 @@ func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 	}
 }
 
-func (h *Hub) BroadcastMsg(msg []byte) {
-	h.broadcast <- msg
+func (h *Hub) BroadcastMsg(msg Message) {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		h.logger.Error(err)
+	} else {
+		h.broadcast <- b
+	}
 }
 
 func (h *Hub) doSendMsg(message wsDirectMessage) {
