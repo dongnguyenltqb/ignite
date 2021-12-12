@@ -117,6 +117,7 @@ func newHub() *Hub {
 	return hub
 }
 
+// Send message to specific room
 func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 	b, err := json.Marshal(message)
 	if err != nil {
@@ -126,6 +127,20 @@ func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 		NodeId:  h.nodeId,
 		RoomId:  roomId,
 		Message: b,
+	}
+}
+
+// Send message to specific room except some client
+func (h *Hub) SendMsgToRoomWithExcludeClient(roomId string, exclude_ids []string, message Message) {
+	b, err := json.Marshal(message)
+	if err != nil {
+		h.logger.Error(err)
+	}
+	h.room <- wsMessageForRoom{
+		NodeId:     h.nodeId,
+		RoomId:     roomId,
+		Message:    b,
+		ExcludeIds: exclude_ids,
 	}
 }
 
@@ -161,14 +176,37 @@ func (h *Hub) doBroadcastMsg(message []byte) {
 }
 
 func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
-	for client := range h.clients {
-		ok := client.exist(message.RoomId)
-		if ok {
-			select {
-			case client.send <- message.Message:
-			default:
-				delete(h.clients, client)
-				go client.clean()
+	if message.ExcludeIds != nil {
+		for client := range h.clients {
+			ok := client.exist(message.RoomId)
+			if ok {
+				select {
+				case client.send <- message.Message:
+				default:
+					delete(h.clients, client)
+					go client.clean()
+				}
+			}
+		}
+	} else {
+		for client := range h.clients {
+			exclude := false
+			for _, excludeId := range message.ExcludeIds {
+				if excludeId == client.Id {
+					exclude = true
+				}
+			}
+			if exclude {
+				continue
+			}
+			ok := client.exist(message.RoomId)
+			if ok {
+				select {
+				case client.send <- message.Message:
+				default:
+					delete(h.clients, client)
+					go client.clean()
+				}
 			}
 		}
 	}

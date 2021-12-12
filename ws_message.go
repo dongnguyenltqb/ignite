@@ -21,9 +21,10 @@ type wsDirectMessage struct {
 }
 
 type wsMessageForRoom struct {
-	NodeId  string `json:"nodeId"`
-	RoomId  string `json:"roomId"`
-	Message []byte `json:"message"`
+	NodeId     string   `json:"nodeId"`
+	RoomId     string   `json:"roomId"`
+	Message    []byte   `json:"message"`
+	ExcludeIds []string `json:"excludeIds"`
 }
 
 type wsBroadcastMessage struct {

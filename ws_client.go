@@ -203,7 +203,7 @@ func (c *Client) sendRawMsg(message []byte) {
 }
 
 // Send direct message to client
-func (c *Client) SendMessage(message Message) {
+func (c *Client) SendMsg(message Message) {
 	b, _ := json.Marshal(message)
 	c.hub.directMsg <- wsDirectMessage{
 		c:       c,
@@ -216,11 +216,17 @@ func (c *Client) SendMsgToRoom(roomId string, message Message) {
 	c.hub.SendMsgToRoom(roomId, message)
 }
 
+// Send message to specific room except some client
+func (c *Client) SendMsgToRoomWithExcludeClient(roomId string, exclude_ids []string, message Message) {
+	c.hub.SendMsgToRoomWithExcludeClient(roomId, exclude_ids, message)
+}
+
 // Send message to all active connection
 func (c *Client) BroadcastMsg(msg Message) {
 	c.hub.BroadcastMsg(msg)
 }
 
+// Send identity message, this is client id
 func (c *Client) SendIdentityMsg() {
 	clientId := wsIdentityMessage{
 		ClientId: c.Id,

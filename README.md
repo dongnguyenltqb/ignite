@@ -1,10 +1,9 @@
 # ignite
 
-a websocket server module.
+A websocket server module.
+Require redis to scale to multi nodes.
 
-require redis to scale to multi nodes.
-
-client/server message format
+Client/server message follow format
 
 ```go
 type Message struct {
@@ -23,39 +22,36 @@ import (
 	"fmt"
 	"os"
 
-	"ignite"
+	"github.com/dongnguyenltqb/ignite"
 )
 
 func main() {
 	forever := make(chan bool)
 
 	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "localhost:6379", "", 10)
+	fmt.Println("Websocket is listen on", os.Getenv("addr"))
 	hub.OnNewClient = func(client *ignite.Client) {
-		// Send identity message, include client id
+		// Send indentity message
 		client.SendIdentityMsg()
 		// Join a room
 		client.Join("room-number-1")
-		newMemberPayload, _ := json.Marshal(client.Id)
-		// Broadcast
-		client.BroadcastMsg(ignite.Message{
-			Event:   "new_member",
-			Payload: newMemberPayload,
+		// Send to a room except some client
+		client.SendMsgToRoomWithExcludeClient("room-number-1", []string{client.Id}, ignite.Message{
+			Event: "new_client_enter_room",
 		})
-		// Listen an event
+		// Register handle for an event
 		client.On("buy", "1", func(payload json.RawMessage) {
-			// Send message
-			client.SendMessage(ignite.Message{
+			client.SendMsg(ignite.Message{
 				Event:   "test",
 				Payload: payload,
 			})
 			helloMsgPayload, _ := json.Marshal("Hello world")
-			// Send message to room
+			// Send to all member in a room
 			client.SendMsgToRoom("room-number-1", ignite.Message{
 				Event:   "test_room_1",
 				Payload: helloMsgPayload,
 			})
 		})
-		// Handle close connection event
 		client.OnClose(func(reason string) {
 			fmt.Println("Client ", client.Id, " closed: ", reason)
 		})
