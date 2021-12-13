@@ -22,13 +22,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dongnguyenltqb/ignite"
+	"ignite"
 )
 
 func main() {
 	forever := make(chan bool)
 
-	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "localhost:6379", "", 10)
+	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "default", "localhost:6379", "", 10)
 	fmt.Println("Websocket is listen on", os.Getenv("addr"))
 	hub.OnNewClient = func(client *ignite.Client) {
 		// Send indentity message
@@ -58,7 +58,6 @@ func main() {
 	}
 	<-forever
 }
-
 ```
 
 send/received message

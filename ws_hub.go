@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	pubSubRoomChannel      = "ignite_room_chan"
-	pubSubBroadcastChannel = "ignite_broadcast_chan"
+	// The Subscribe channel for room message
+	pubSubRoomChannel = "ignite_room_chan_"
+	// The Subscribe channel for broadcast message
+	pubSubBroadcastChannel = "ignite_broadcast_chan_"
 )
 
 var upgrader = websocket.Upgrader{
@@ -63,6 +65,8 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
+	// Namespace
+	namespace string
 	// Node Id
 	nodeId string
 	// Registered clients.
@@ -96,10 +100,11 @@ type Hub struct {
 	OnNewClient func(*Client)
 }
 
-func newHub() *Hub {
-	redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel)
-	redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel)
+func newHub(namespace string) *Hub {
+	redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel+namespace)
+	redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel+namespace)
 	hub := &Hub{
+		namespace:              namespace,
 		nodeId:                 uuid.New().String(),
 		directMsg:              make(chan wsDirectMessage),
 		broadcast:              make(chan []byte),

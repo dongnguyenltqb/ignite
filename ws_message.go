@@ -2,8 +2,8 @@ package ignite
 
 import "encoding/json"
 
+// Message Type
 const (
-	// Message Type
 	msgJoinRoom  = "joinRoom"
 	msgLeaveRoom = "leaveRoom"
 	msgIdentity  = "identity"
