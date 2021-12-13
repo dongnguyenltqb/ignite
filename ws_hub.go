@@ -181,37 +181,17 @@ func (h *Hub) doBroadcastMsg(message []byte) {
 }
 
 func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
-	if message.ExcludeIds != nil {
-		for client := range h.clients {
-			ok := client.exist(message.RoomId)
-			if ok {
-				select {
-				case client.send <- message.Message:
-				default:
-					delete(h.clients, client)
-					go client.clean()
-				}
-			}
+	for client := range h.clients {
+		if message.ExcludeIds != nil && containtString(message.ExcludeIds, client.Id) {
+			continue
 		}
-	} else {
-		for client := range h.clients {
-			exclude := false
-			for _, excludeId := range message.ExcludeIds {
-				if excludeId == client.Id {
-					exclude = true
-				}
-			}
-			if exclude {
-				continue
-			}
-			ok := client.exist(message.RoomId)
-			if ok {
-				select {
-				case client.send <- message.Message:
-				default:
-					delete(h.clients, client)
-					go client.clean()
-				}
+		ok := client.exist(message.RoomId)
+		if ok {
+			select {
+			case client.send <- message.Message:
+			default:
+				delete(h.clients, client)
+				go client.clean()
 			}
 		}
 	}

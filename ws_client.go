@@ -185,13 +185,7 @@ func (c *Client) Leave(roomId string) {
 
 // Check if client join this room or not
 func (c *Client) exist(roomId string) bool {
-	n := len(c.rooms)
-	for i := 0; i < n; i++ {
-		if c.rooms[i] == roomId {
-			return true
-		}
-	}
-	return false
+	return containtString(c.rooms, roomId)
 }
 
 // Send a raw message to client
