@@ -159,7 +159,7 @@ func (h *Hub) BroadcastMsg(msg Message) {
 }
 
 func (h *Hub) doSendMsg(message wsDirectMessage) {
-	if ok := h.clients[message.c]; ok {
+	if h.clients[message.c] {
 		select {
 		case message.c.send <- message.message:
 		default:
@@ -185,8 +185,7 @@ func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
 		if message.ExcludeIds != nil && containtString(message.ExcludeIds, client.Id) {
 			continue
 		}
-		ok := client.exist(message.RoomId)
-		if ok {
+		if client.exist(message.RoomId) {
 			select {
 			case client.send <- message.Message:
 			default:
@@ -240,7 +239,7 @@ func (h *Hub) run() {
 		case client := <-h.register:
 			h.clients[client] = true
 		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
+			if h.clients[client] {
 				delete(h.clients, client)
 				go client.clean()
 			}
