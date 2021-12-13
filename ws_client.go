@@ -75,14 +75,7 @@ func (c *Client) roomPump() {
 		if msg.Join {
 			for i := 0; i < len(msg.Ids); i++ {
 				id := msg.Ids[i]
-				n := len(c.rooms)
-				joined := false
-				for i := 0; i < n; i++ {
-					if c.rooms[i] == id {
-						joined = true
-					}
-				}
-				if !joined {
+				if !containtString(c.rooms, id) {
 					c.rooms = append(c.rooms, id)
 				}
 			}
