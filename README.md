@@ -20,9 +20,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
-	"ignite"
+	"github.com/dongnguyenltqb/ignite"
 )
 
 func main() {
