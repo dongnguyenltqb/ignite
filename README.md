@@ -15,10 +15,11 @@ type Message struct {
 use module like the code below.
 
 ```go
-func main(){
+func main() {
+
 	hub := ignite.NewServer(&ignite.ServerConfig{
 		Namespace: "default",
-		Address:   "localhost:8081",
+		Address:   "localhost:8082",
 		Path:      "/",
 		RedisHost: "localhost",
 		RedisPort: 6379,
@@ -34,10 +35,9 @@ func main(){
 		client.Join("#Go")
 
 		// Send to a room except some client
-		payload, _ := json.Marshal(client.ID)
 		client.SendMsgExcept("#Go", []string{client.ID}, ignite.Message{
 			Event:   "NEW_MEMBER",
-			Payload: payload,
+			Payload: ignite.ToPayload(client.ID),
 		})
 
 		// Register handle for an event
@@ -47,18 +47,14 @@ func main(){
 				Payload: payload,
 			})
 
-			helloMsgPayload, _ := json.Marshal("Hello world")
-
-			// Send to all member in a room
-			client.SendMsgToRoom("room-number-1", ignite.Message{
-				Event:   "test_room_1",
-				Payload: helloMsgPayload,
-			})
 		})
 		client.OnClose(func(reason string) {
 			fmt.Println("Client ", client.ID, " closed: ", reason)
 		})
 	})
+
+	forever := make(chan struct{})
+	<-forever
 }
 ```
 

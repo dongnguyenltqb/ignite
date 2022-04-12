@@ -15,6 +15,15 @@ type Message struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
+func ToPayload(value interface{}) json.RawMessage {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		getLogger().Error(err)
+		return nil
+	}
+	return raw
+}
+
 type wsDirectMessage struct {
 	c       *Client
 	message []byte
