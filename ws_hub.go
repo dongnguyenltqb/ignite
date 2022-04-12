@@ -1,7 +1,3 @@
-// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package ignite
 
 import (
@@ -37,7 +33,7 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := &Client{
-		Id:                 uuid.New().String(),
+		ID:                 uuid.New().String(),
 		hub:                h,
 		conn:               conn,
 		send:               make(chan []byte, 256),
@@ -46,7 +42,7 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 		onCloseHandelFuncs: []func(string){},
 		logger:             getLogger(),
 	}
-	client.rooms = []string{client.Id}
+	client.rooms = []string{client.ID}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
@@ -54,13 +50,11 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 	go client.roomPump()
 	go client.writePump()
 	go client.readPump()
-	h.OnNewClient(client)
+	for _, handler := range h.handleFn {
+		handler(client)
+	}
 
 }
-
-// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
 
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
@@ -96,8 +90,13 @@ type Hub struct {
 	// Logger
 	logger *logrus.Logger
 
-	// Emit function for register handle func
-	OnNewClient func(*Client)
+	// HandleFunc
+	handleFn []func(client *Client)
+}
+
+func (h *Hub) OnNewClient(fn func(client *Client)) {
+	h.handleFn = append(h.handleFn, fn)
+
 }
 
 func newHub(namespace string) *Hub {
@@ -117,6 +116,7 @@ func newHub(namespace string) *Hub {
 		subscribeRoomChan:      redisSubscribeRoom.Channel(),
 		subscribeBroadcastChan: redisSubscribeBroadcast.Channel(),
 		logger:                 getLogger(),
+		handleFn:               make([]func(*Client), 0),
 	}
 	go hub.run()
 	return hub
@@ -136,7 +136,7 @@ func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 }
 
 // Send message to specific room except some client
-func (h *Hub) SendMsgToRoomWithExcludeClient(roomId string, exclude_ids []string, message Message) {
+func (h *Hub) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
 	b, err := json.Marshal(message)
 	if err != nil {
 		h.logger.Error(err)
@@ -182,7 +182,7 @@ func (h *Hub) doBroadcastMsg(message []byte) {
 
 func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
 	for client := range h.clients {
-		if message.ExcludeIds != nil && containtString(message.ExcludeIds, client.Id) {
+		if message.ExcludeIds != nil && containtString(message.ExcludeIds, client.ID) {
 			continue
 		}
 		if client.exist(message.RoomId) {

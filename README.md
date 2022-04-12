@@ -15,36 +15,40 @@ type Message struct {
 use module like the code below.
 
 ```go
-package main
+func main(){
+	hub := ignite.NewServer(&ignite.ServerConfig{
+		Namespace: "default",
+		Address:   "localhost:8081",
+		Path:      "/",
+		RedisHost: "localhost",
+		RedisPort: 6379,
+		RedisDb:   10,
+	})
 
-import (
-	"encoding/json"
-	"fmt"
+	hub.OnNewClient(func(client *ignite.Client) {
 
-	"github.com/dongnguyenltqb/ignite"
-)
-
-func main() {
-	forever := make(chan bool)
-
-	hub := ignite.NewServer(os.Getenv("addr"), "/ws", "default", "localhost:6379", "", 10)
-	fmt.Println("Websocket is listen on", os.Getenv("addr"))
-	hub.OnNewClient = func(client *ignite.Client) {
 		// Send indentity message
-		client.SendIdentityMsg()
+		client.SendId()
+
 		// Join a room
-		client.Join("room-number-1")
+		client.Join("#Go")
+
 		// Send to a room except some client
-		client.SendMsgToRoomWithExcludeClient("room-number-1", []string{client.Id}, ignite.Message{
-			Event: "new_client_enter_room",
+		payload, _ := json.Marshal(client.ID)
+		client.SendMsgExcept("#Go", []string{client.ID}, ignite.Message{
+			Event:   "NEW_MEMBER",
+			Payload: payload,
 		})
+
 		// Register handle for an event
-		client.On("buy", "1", func(payload json.RawMessage) {
+		client.On("BUY", "1", func(payload json.RawMessage) {
 			client.SendMsg(ignite.Message{
-				Event:   "test",
+				Event:   "BUY_RESPONSE",
 				Payload: payload,
 			})
+
 			helloMsgPayload, _ := json.Marshal("Hello world")
+
 			// Send to all member in a room
 			client.SendMsgToRoom("room-number-1", ignite.Message{
 				Event:   "test_room_1",
@@ -52,20 +56,19 @@ func main() {
 			})
 		})
 		client.OnClose(func(reason string) {
-			fmt.Println("Client ", client.Id, " closed: ", reason)
+			fmt.Println("Client ", client.ID, " closed: ", reason)
 		})
-	}
-	<-forever
+	})
 }
 ```
 
 send/received message
 
 ```shell
-➜  ignite git:(master) ✗ wscat -c "ws://localhost:8787/ws"
+❯ wscat -c "ws://localhost:8081/"
 Connected (press CTRL+C to quit)
-< {"event":"identity","payload":{"clientId":"48d44877-f04b-4e63-ad4b-ebf17899a4de"}}
-> {"event":"buy","payload":"PTB"}
-< {"event":"bought","payload":"PTB"}
+< {"event":"identity","payload":{"clientId":"1ddcc65d-49ab-496a-9939-5da768d1c52c"}}
+> {"event":"BUY","payload":"VCS"}
+< {"event":"BUY_RESPONSE","payload":"VCS"}
 >
 ```

@@ -38,7 +38,7 @@ type Client struct {
 	hub *Hub
 
 	// Identity
-	Id string
+	ID string
 
 	// The websocket connection.
 	conn *websocket.Conn
@@ -204,8 +204,8 @@ func (c *Client) SendMsgToRoom(roomId string, message Message) {
 }
 
 // Send message to specific room except some client
-func (c *Client) SendMsgToRoomWithExcludeClient(roomId string, exclude_ids []string, message Message) {
-	c.hub.SendMsgToRoomWithExcludeClient(roomId, exclude_ids, message)
+func (c *Client) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
+	c.hub.SendMsgExcept(roomId, exclude_ids, message)
 }
 
 // Send message to all active connection
@@ -213,10 +213,10 @@ func (c *Client) BroadcastMsg(msg Message) {
 	c.hub.BroadcastMsg(msg)
 }
 
-// Send identity message, this is client id
-func (c *Client) SendIdentityMsg() {
+// Send id to client
+func (c *Client) SendId() {
 	clientId := wsIdentityMessage{
-		ClientId: c.Id,
+		ClientId: c.ID,
 	}
 	b, _ := json.Marshal(clientId)
 	msg := Message{
