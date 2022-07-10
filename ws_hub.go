@@ -41,6 +41,7 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 		rooms:              make([]string, maxRoomSize),
 		onCloseHandelFuncs: []func(string){},
 		logger:             getLogger(),
+		metadata:           make(map[string]interface{}),
 	}
 	client.rooms = []string{client.ID}
 	client.hub.register <- client

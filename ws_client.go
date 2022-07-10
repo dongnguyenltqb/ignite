@@ -60,6 +60,25 @@ type Client struct {
 
 	// Handle function
 	handleFuncs []clientHandleFunc
+
+	// Client metadata
+	metadata map[string]interface{}
+}
+
+// set a value to client metadata
+func (c *Client) Set(key string, value interface{}) {
+	c.metadata[key] = value
+}
+
+// retrieve value by given key from client metadata
+func (c *Client) Get(key string) interface{} {
+	return c.metadata[key]
+}
+
+// marshall message to json.RawMessage
+func (c *Client) RawMessage(payload interface{}) []byte {
+	bytes, _ := json.Marshal(payload)
+	return bytes
 }
 
 // remove every message and shutdown after 1 minutes

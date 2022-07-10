@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"ignite"
 )
@@ -22,6 +23,7 @@ func main() {
 
 		// Send indentity message
 		client.SendId()
+		client.Set("created_at", time.Now().Unix())
 
 		// Join a room
 		client.Join("#Go")
@@ -37,6 +39,13 @@ func main() {
 			client.SendMsg(ignite.Message{
 				Event:   "BUY_RESPONSE",
 				Payload: payload,
+			})
+
+		})
+		client.On("TIME_PASSED", "1", func(payload json.RawMessage) {
+			client.SendMsg(ignite.Message{
+				Event:   "TIME_PASSED",
+				Payload: client.RawMessage(time.Now().Unix() - client.Get("created_at").(int64)),
 			})
 
 		})
