@@ -17,7 +17,7 @@ use module like the code below.
 ```go
 func main() {
 
-	hub := ignite.NewServer(&ignite.ServerConfig{
+	hub := ignite.NewServer[string,string](&ignite.ServerConfig{
 		Namespace: "default",
 		Address:   "localhost:8082",
 		Path:      "/",
@@ -26,10 +26,11 @@ func main() {
 		RedisDb:   10,
 	})
 
-	hub.OnNewClient(func(client *ignite.Client) {
+	hub.OnNewClient(func(client *ignite.Client[string,string]) {
 
 		// Send indentity message
 		client.SendId()
+		client.Set("created_at",time.Now().string())
 
 		// Join a room
 		client.Join("#Go")

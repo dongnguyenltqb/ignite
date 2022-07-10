@@ -34,8 +34,8 @@ type clientHandleFunc struct {
 }
 
 // Client is a middleman between the websocket connection and the hub.
-type Client struct {
-	hub *Hub
+type Client[K comparable, V any] struct {
+	hub *Hub[K, V]
 
 	// Identity
 	ID string
@@ -62,34 +62,34 @@ type Client struct {
 	handleFuncs []clientHandleFunc
 
 	// Client metadata
-	metadata map[string]interface{}
+	metadata map[K]V
 }
 
 // set a value to client metadata
-func (c *Client) Set(key string, value interface{}) {
+func (c *Client[K, V]) Set(key K, value V) {
 	c.metadata[key] = value
 }
 
 // retrieve value by given key from client metadata
-func (c *Client) Get(key string) interface{} {
+func (c *Client[K, V]) Get(key K) V {
 	return c.metadata[key]
 }
 
 // marshall message to json.RawMessage
-func (c *Client) RawMessage(payload interface{}) []byte {
+func (c *Client[K, V]) RawMessage(payload interface{}) []byte {
 	bytes, _ := json.Marshal(payload)
 	return bytes
 }
 
 // remove every message and shutdown after 1 minutes
-func (c *Client) clean() {
+func (c *Client[K, V]) clean() {
 	c.rooms = nil
 	close(c.send)
 	close(c.rchan)
 }
 
 // roomPump pumps action for channel and process one by one
-func (c *Client) roomPump() {
+func (c *Client[K, V]) roomPump() {
 	for msg := range c.rchan {
 		if msg.Join {
 			for i := 0; i < len(msg.Ids); i++ {
@@ -120,7 +120,7 @@ func (c *Client) roomPump() {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump() {
+func (c *Client[K, V]) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -150,7 +150,7 @@ func (c *Client) readPump() {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump() {
+func (c *Client[K, V]) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -178,7 +178,7 @@ func (c *Client) writePump() {
 }
 
 // Join a room
-func (c *Client) Join(roomId string) {
+func (c *Client[K, V]) Join(roomId string) {
 	rMsg := wsRoomActionMessage{
 		Join: true,
 		Ids:  []string{roomId},
@@ -187,7 +187,7 @@ func (c *Client) Join(roomId string) {
 }
 
 // Leave a room
-func (c *Client) Leave(roomId string) {
+func (c *Client[K, V]) Leave(roomId string) {
 	rMsg := wsRoomActionMessage{
 		Leave: true,
 		Ids:   []string{roomId},
@@ -196,44 +196,44 @@ func (c *Client) Leave(roomId string) {
 }
 
 // Check if client join this room or not
-func (c *Client) exist(roomId string) bool {
+func (c *Client[K, V]) exist(roomId string) bool {
 	return containtString(c.rooms, roomId)
 }
 
 // Send a raw message to client
-func (c *Client) sendRawMsg(message []byte) {
-	c.hub.directMsg <- wsDirectMessage{
+func (c *Client[K, V]) sendRawMsg(message []byte) {
+	c.hub.directMsg <- wsDirectMessage[K, V]{
 		c:       c,
 		message: message,
 	}
 }
 
 // Send direct message to client
-func (c *Client) SendMsg(message Message) {
+func (c *Client[K, V]) SendMsg(message Message) {
 	b, _ := json.Marshal(message)
-	c.hub.directMsg <- wsDirectMessage{
+	c.hub.directMsg <- wsDirectMessage[K, V]{
 		c:       c,
 		message: b,
 	}
 }
 
 // Send message to specific room
-func (c *Client) SendMsgToRoom(roomId string, message Message) {
+func (c *Client[K, V]) SendMsgToRoom(roomId string, message Message) {
 	c.hub.SendMsgToRoom(roomId, message)
 }
 
 // Send message to specific room except some client
-func (c *Client) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
+func (c *Client[K, V]) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
 	c.hub.SendMsgExcept(roomId, exclude_ids, message)
 }
 
 // Send message to all active connection
-func (c *Client) BroadcastMsg(msg Message) {
+func (c *Client[K, V]) BroadcastMsg(msg Message) {
 	c.hub.BroadcastMsg(msg)
 }
 
 // Send id to client
-func (c *Client) SendId() {
+func (c *Client[K, V]) SendId() {
 	clientId := wsIdentityMessage{
 		ClientId: c.ID,
 	}
@@ -247,7 +247,7 @@ func (c *Client) SendId() {
 }
 
 // Register handle func for an event
-func (c *Client) On(event string, funcId string, f func(json.RawMessage)) {
+func (c *Client[K, V]) On(event string, funcId string, f func(json.RawMessage)) {
 	c.handleFuncs = append(c.handleFuncs, clientHandleFunc{
 		event: event,
 		id:    funcId,
@@ -256,7 +256,7 @@ func (c *Client) On(event string, funcId string, f func(json.RawMessage)) {
 }
 
 // Unregister handle func for an event
-func (c *Client) Off(event string, funcId string) {
+func (c *Client[K, V]) Off(event string, funcId string) {
 	newHandleFuncs := []clientHandleFunc{}
 	for _, handler := range c.handleFuncs {
 		if handler.id != funcId && event != handler.event {
@@ -267,12 +267,12 @@ func (c *Client) Off(event string, funcId string) {
 }
 
 // Callback function when a client closed connection
-func (c *Client) OnClose(f func(string)) {
+func (c *Client[K, V]) OnClose(f func(string)) {
 	c.onCloseHandelFuncs = append(c.onCloseHandelFuncs, f)
 }
 
 // process message from readPump
-func (c *Client) processMsg(message []byte) {
+func (c *Client[K, V]) processMsg(message []byte) {
 	msg := Message{}
 	if err := json.Unmarshal(message, &msg); err != nil {
 		c.logger.Error(err)

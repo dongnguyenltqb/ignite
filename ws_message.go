@@ -24,8 +24,8 @@ func ToPayload(value interface{}) json.RawMessage {
 	return raw
 }
 
-type wsDirectMessage struct {
-	c       *Client
+type wsDirectMessage[K comparable, V any] struct {
+	c       *Client[K, V]
 	message []byte
 }
 

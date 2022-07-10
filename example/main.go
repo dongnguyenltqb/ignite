@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	hub := ignite.NewServer(&ignite.ServerConfig{
+	hub := ignite.NewServer[string, int64](&ignite.ServerConfig{
 		Namespace: "default",
 		Address:   "localhost:8082",
 		Path:      "/",
@@ -19,7 +19,7 @@ func main() {
 		RedisDb:   10,
 	})
 
-	hub.OnNewClient(func(client *ignite.Client) {
+	hub.OnNewClient(func(client *ignite.Client[string, int64]) {
 
 		// Send indentity message
 		client.SendId()
@@ -45,7 +45,7 @@ func main() {
 		client.On("TIME_PASSED", "1", func(payload json.RawMessage) {
 			client.SendMsg(ignite.Message{
 				Event:   "TIME_PASSED",
-				Payload: client.RawMessage(time.Now().Unix() - client.Get("created_at").(int64)),
+				Payload: client.RawMessage(time.Now().Unix() - client.Get("created_at")),
 			})
 
 		})

@@ -18,10 +18,10 @@ type ServerConfig struct {
 	RedisDb       uint
 }
 
-func NewServer(config *ServerConfig) *Hub {
+func NewServer[K comparable, V any](config *ServerConfig) *Hub[K, V] {
 	// prepare redis config
 	setRedisConfig(config.RedisHost+":"+fmt.Sprintf("%v", config.RedisPort), config.RedisPassword, config.RedisDb)
-	hub := newHub(config.Namespace)
+	hub := newHub[K, V](config.Namespace)
 
 	// spin a http server to handle request
 	handler := http.NewServeMux()

@@ -27,12 +27,12 @@ var upgrader = websocket.Upgrader{
 }
 
 // 	serveWs handles websocket requests from the peer.
-func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
+func (h *Hub[K, V]) serveWs(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	client := &Client{
+	client := &Client[K, V]{
 		ID:                 uuid.New().String(),
 		hub:                h,
 		conn:               conn,
@@ -41,7 +41,7 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 		rooms:              make([]string, maxRoomSize),
 		onCloseHandelFuncs: []func(string){},
 		logger:             getLogger(),
-		metadata:           make(map[string]interface{}),
+		metadata:           make(map[K]V),
 	}
 	client.rooms = []string{client.ID}
 	client.hub.register <- client
@@ -59,16 +59,16 @@ func (h *Hub) serveWs(w http.ResponseWriter, r *http.Request) {
 
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
-type Hub struct {
+type Hub[K comparable, V any] struct {
 	// Namespace
 	namespace string
 	// Node Id
 	nodeId string
 	// Registered clients.
-	clients map[*Client]bool
+	clients map[*Client[K, V]]bool
 
 	// Outbound message for specific client
-	directMsg chan wsDirectMessage
+	directMsg chan wsDirectMessage[K, V]
 
 	// Outbound messages
 	broadcast chan []byte
@@ -77,10 +77,10 @@ type Hub struct {
 	room chan wsMessageForRoom
 
 	// Register requests from the clients.
-	register chan *Client
+	register chan *Client[K, V]
 
 	// Unregister requests from clients.
-	unregister chan *Client
+	unregister chan *Client[K, V]
 
 	// Pubsub channel
 	pubSubRoomChannel      string
@@ -92,39 +92,38 @@ type Hub struct {
 	logger *logrus.Logger
 
 	// HandleFunc
-	handleFn []func(client *Client)
+	handleFn []func(client *Client[K, V])
 }
 
-func (h *Hub) OnNewClient(fn func(client *Client)) {
+func (h *Hub[K, V]) OnNewClient(fn func(client *Client[K, V])) {
 	h.handleFn = append(h.handleFn, fn)
-
 }
 
-func newHub(namespace string) *Hub {
+func newHub[K comparable, V any](namespace string) *Hub[K, V] {
 	redisSubscribeRoom := getRedis().Subscribe(context.Background(), pubSubRoomChannel+namespace)
 	redisSubscribeBroadcast := getRedis().Subscribe(context.Background(), pubSubBroadcastChannel+namespace)
-	hub := &Hub{
+	hub := &Hub[K, V]{
 		namespace:              namespace,
 		nodeId:                 uuid.New().String(),
-		directMsg:              make(chan wsDirectMessage),
+		directMsg:              make(chan wsDirectMessage[K, V]),
 		broadcast:              make(chan []byte),
 		room:                   make(chan wsMessageForRoom),
-		register:               make(chan *Client),
-		unregister:             make(chan *Client),
-		clients:                make(map[*Client]bool),
+		register:               make(chan *Client[K, V]),
+		unregister:             make(chan *Client[K, V]),
+		clients:                make(map[*Client[K, V]]bool),
 		pubSubRoomChannel:      pubSubRoomChannel,
 		pubSubBroadcastChannel: pubSubBroadcastChannel,
 		subscribeRoomChan:      redisSubscribeRoom.Channel(),
 		subscribeBroadcastChan: redisSubscribeBroadcast.Channel(),
 		logger:                 getLogger(),
-		handleFn:               make([]func(*Client), 0),
+		handleFn:               make([]func(*Client[K, V]), 0),
 	}
 	go hub.run()
 	return hub
 }
 
 // Send message to specific room
-func (h *Hub) SendMsgToRoom(roomId string, message Message) {
+func (h *Hub[K, V]) SendMsgToRoom(roomId string, message Message) {
 	b, err := json.Marshal(message)
 	if err != nil {
 		h.logger.Error(err)
@@ -137,7 +136,7 @@ func (h *Hub) SendMsgToRoom(roomId string, message Message) {
 }
 
 // Send message to specific room except some client
-func (h *Hub) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
+func (h *Hub[K, V]) SendMsgExcept(roomId string, exclude_ids []string, message Message) {
 	b, err := json.Marshal(message)
 	if err != nil {
 		h.logger.Error(err)
@@ -150,7 +149,7 @@ func (h *Hub) SendMsgExcept(roomId string, exclude_ids []string, message Message
 	}
 }
 
-func (h *Hub) BroadcastMsg(msg Message) {
+func (h *Hub[K, V]) BroadcastMsg(msg Message) {
 	b, err := json.Marshal(msg)
 	if err != nil {
 		h.logger.Error(err)
@@ -159,7 +158,7 @@ func (h *Hub) BroadcastMsg(msg Message) {
 	}
 }
 
-func (h *Hub) doSendMsg(message wsDirectMessage) {
+func (h *Hub[K, V]) doSendMsg(message wsDirectMessage[K, V]) {
 	if h.clients[message.c] {
 		select {
 		case message.c.send <- message.message:
@@ -170,7 +169,7 @@ func (h *Hub) doSendMsg(message wsDirectMessage) {
 	}
 }
 
-func (h *Hub) doBroadcastMsg(message []byte) {
+func (h *Hub[K, V]) doBroadcastMsg(message []byte) {
 	for client := range h.clients {
 		select {
 		case client.send <- message:
@@ -181,7 +180,7 @@ func (h *Hub) doBroadcastMsg(message []byte) {
 	}
 }
 
-func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
+func (h *Hub[K, V]) doBroadcastRoomMsg(message wsMessageForRoom) {
 	for client := range h.clients {
 		if message.ExcludeIds != nil && containtString(message.ExcludeIds, client.ID) {
 			continue
@@ -197,14 +196,14 @@ func (h *Hub) doBroadcastRoomMsg(message wsMessageForRoom) {
 	}
 }
 
-func (h *Hub) pushRoomMsgToRedis(message wsMessageForRoom) {
+func (h *Hub[K, V]) pushRoomMsgToRedis(message wsMessageForRoom) {
 	b, _ := json.Marshal(message)
 	if err := getRedis().Publish(context.Background(), h.pubSubRoomChannel, b).Err(); err != nil {
 		h.logger.Error(err)
 	}
 }
 
-func (h *Hub) pushBroadcastMsgToRedis(message []byte) {
+func (h *Hub[K, V]) pushBroadcastMsgToRedis(message []byte) {
 	msg := wsBroadcastMessage{
 		NodeId:  h.nodeId,
 		Message: message,
@@ -213,7 +212,7 @@ func (h *Hub) pushBroadcastMsgToRedis(message []byte) {
 	getRedis().Publish(context.Background(), h.pubSubBroadcastChannel, b)
 }
 
-func (h *Hub) processRedisRoomMsg(message *redis.Message) {
+func (h *Hub[K, V]) processRedisRoomMsg(message *redis.Message) {
 	m := wsMessageForRoom{}
 	if err := json.Unmarshal([]byte(message.Payload), &m); err != nil {
 		h.logger.Error(err)
@@ -223,7 +222,7 @@ func (h *Hub) processRedisRoomMsg(message *redis.Message) {
 	}
 }
 
-func (h *Hub) processRedisBroadcastMsg(message *redis.Message) {
+func (h *Hub[K, V]) processRedisBroadcastMsg(message *redis.Message) {
 	msg := wsBroadcastMessage{}
 	if err := json.Unmarshal([]byte(message.Payload), &msg); err != nil {
 		h.logger.Error(err)
@@ -233,7 +232,7 @@ func (h *Hub) processRedisBroadcastMsg(message *redis.Message) {
 	}
 }
 
-func (h *Hub) run() {
+func (h *Hub[K, V]) run() {
 	for {
 		select {
 		// register and deregister client
